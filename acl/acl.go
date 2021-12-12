@@ -32,7 +32,7 @@ func BootstrapACL(consulAddress, consulRootPath, consulPort string) *BootstrapAC
 
 	var output BootstrapACLResponse
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("http://%s:%s/%s/acl/bootstrap", consulAddress, consulPort, consulRootPath), nil)
+	req, err := http.NewRequest("PUT", fmt.Sprintf("https://%s:%s/%s/acl/bootstrap", consulAddress, consulPort, consulRootPath), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
