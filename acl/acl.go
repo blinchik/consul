@@ -1,13 +1,37 @@
 package acl
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 )
+
+var consulAddress string
+var consulPort string
+var consulRootPath string
+var prefix string
+
+func main() {
+
+	consulAddress = os.Args[1]
+	consulPort = os.Args[2]
+	consulRootPath = os.Args[3]
+	prefix = os.Args[4]
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	output := BootstrapACL(consulAddress, consulRootPath, consulPort)
+
+	fmt.Print(output)
+
+}
 
 //BootstrapACLResponse the response receviced from bootstraping consul server
 type BootstrapACLResponse struct {
@@ -28,15 +52,40 @@ type BootstrapACLResponse struct {
 
 //BootstrapACL This endpoint does a special one-time bootstrap of the ACL system, making the first management token if the acl.tokens.master configuration entry is not
 //specified in the Consul server configuration and if the cluster has not been bootstrapped previously.
-func BootstrapACL(consulAddress, consulRootPath, consulPort string) *BootstrapACLResponse {
+func BootstrapACL(consulAddress, consulRootPath, consulPort, clientCertFile, clientKeyFile, caChainFile string) *BootstrapACLResponse {
 
 	var output BootstrapACLResponse
+
+	cert, err := tls.LoadX509KeyPair(clientCertFile, clientKeyFile)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	caCert, err := ioutil.ReadFile(caChainFile)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	t := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			RootCAs:      caCertPool,
+		},
+	}
+
+	client := http.Client{Transport: t, Timeout: 15 * time.Second}
 
 	req, err := http.NewRequest("PUT", fmt.Sprintf("https://%s:%s/%s/acl/bootstrap", consulAddress, consulPort, consulRootPath), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
+
 	if err != nil {
 		log.Fatal(err)
 	}
