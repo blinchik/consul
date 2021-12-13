@@ -17,6 +17,9 @@ var consulAddress string
 var consulPort string
 var consulRootPath string
 var prefix string
+var clientKeyFile string
+var clientCertFile string
+var caChainFile string
 
 func main() {
 
@@ -24,10 +27,13 @@ func main() {
 	consulPort = os.Args[2]
 	consulRootPath = os.Args[3]
 	prefix = os.Args[4]
+	clientKeyFile = os.Args[5]
+	clientCertFile = os.Args[6]
+	caChainFile = os.Args[7]
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	output := BootstrapACL(consulAddress, consulRootPath, consulPort)
+	output := BootstrapACL(consulAddress, consulRootPath, consulPort, clientCertFile, clientKeyFile, caChainFile)
 
 	fmt.Print(output)
 
